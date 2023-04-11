@@ -99,6 +99,44 @@ public:
     }
 };
 
+/*
+Approach 2: Strings
+
+Intuition
+    We can also use strings in place of a stack to handle the required operations.
+    It can provide similar operations as stack when dealing with characters.
+
+Algorithm
+    1. Create an empty string variable answer that will store the string while performing the required operations.
+    2. Iterate over the string s from start and for each index i of the string:
+        2a. If s[i] == '*', delete the last character from answer.
+        2b. Otherwise, we have a non-star character, so we append it to answer.
+    3. Return answer.
+
+Note: This approach does not work for Python as the strings are immutable in Python, so this would result in an O(n^2) time complexity.
+*/
+
+class Solution_
+{
+public:
+    string removeStars(string s)
+    {
+        string answer = "";
+        for (int i = 0; i < s.size(); i++)
+        {
+            if (s[i] == '*')
+            {
+                answer.pop_back();
+            }
+            else
+            {
+                answer.push_back(s[i]);
+            }
+        }
+        return answer;
+    }
+};
+
 int main()
 {
     string s = "leet**cod*e";
