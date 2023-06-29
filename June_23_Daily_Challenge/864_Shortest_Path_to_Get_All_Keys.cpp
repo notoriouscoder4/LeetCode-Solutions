@@ -45,97 +45,127 @@ using namespace std;
 
 class Solution
 {
+    const int dx[4] = {-1, 1, 0, 0};
+    const int dy[4] = {0, 0, -1, 1};
+
+    // Checking if new coordinates are going out of grid on not
+    bool isValid(int x, int y, int rows, int cols)
+    {
+        return (x >= 0 and x < rows and y >= 0 and y < cols);
+    }
+
+    // Function to check whether current char is lowercase
+    bool isLowerCase(char ch)
+    {
+        return (ch >= 'a' and ch <= 'z');
+    }
+
+    // Function to check whether current char is uppercase
+    bool isUpperCase(char ch)
+    {
+        return (ch >= 'A' and ch <= 'Z');
+    }
+
+    // Return number of set bits in number
+    int getNumberOfBits(int mask)
+    {
+        int ans = 0;
+
+        while (mask != 0)
+        {
+            ans += (mask & 1);
+            mask >>= 1; // Right Shift (same as divide by 2).
+        }
+
+        return ans;
+    }
+
 public:
     int shortestPathAllKeys(vector<string> &grid)
     {
-        int m = grid.size(), n = grid[0].size();
+
+        int rows = grid.size();
+        int cols = grid[0].size();
+
+        int keys = 0;
+
+        // {i, j, mask}
         queue<vector<int>> q;
-        vector<vector<int>> moves = {{0, 1}, {1, 0}, {-1, 0}, {0, -1}};
 
-        // seen['key'] is only for BFS with key state equals 'keys'
-        unordered_map<int, unordered_set<pair<int, int>>> seen;
-
-        unordered_set<char> keySet, lockSet;
-        int allKeys = 0;
-        int startRow = -1, startCol = -1;
-
-        for (int i = 0; i < m; i++)
+        for (int i = 0; i < rows; i++)
         {
-            for (int j = 0; j < n; j++)
+            for (int j = 0; j < cols; j++)
             {
-                char cell = grid[i][j];
-                if (cell >= 'a' && cell <= 'f')
+
+                if (isLowerCase(grid[i][j]))
                 {
-                    allKeys += (1 << (cell - 'a'));
-                    keySet.insert(cell);
+                    keys++;
                 }
-                if (cell >= 'A' && cell <= 'F')
+
+                if (grid[i][j] == '@')
                 {
-                    lockSet.insert(cell);
-                }
-                if (cell == '@')
-                {
-                    startRow = i;
-                    startCol = j;
+                    q.push({i, j, 0});
                 }
             }
         }
+        set<vector<int>> vis; // {i,j, currMask}
+        int steps = 0;
 
-        // [row, column, key state, distance]
-        q.push({startRow, startCol, 0, 0});
-        seen[0].insert(make_pair(startRow, startCol));
-
-        while (!q.empty())
+        while (not q.empty())
         {
-            vector<int> cur = q.front();
-            q.pop();
-            int curR = cur[0], curC = cur[1], keys = cur[2], dist = cur[3];
-            for (vector<int> &move : moves)
+            int sz = q.size();
+
+            for (int i = 0; i < sz; i++)
             {
-                int newR = curR + move[0], newC = curC + move[1];
 
-                // If this cell (newR, newC) is reachable.
-                if (newR >= 0 && newR < m && newC >= 0 && newC < n && grid[newR][newC] != '#')
+                vector<int> currCell = q.front();
+                q.pop();
+
+                int x = currCell[0];
+                int y = currCell[1];
+                int mask = currCell[2];
+
+                // If we have collected all keys the return steps
+                if (getNumberOfBits(mask) == keys)
                 {
-                    char cell = grid[newR][newC];
+                    return steps;
+                }
 
-                    // If it is a key:
-                    if (keySet.count(cell))
-                    {
-                        // If we have collected it before, no need to revisit this cell.
-                        if (((1 << (cell - 'a')) & keys) != 0)
-                        {
-                            continue;
-                        }
+                for (int k = 0; k < 4; k++)
+                {
+                    int newX = x + dx[k];
+                    int newY = y + dy[k];
 
-                        // Otherwise, we can walk to this cell and pick it up.
-                        int newKeys = (keys | (1 << (cell - 'a')));
-
-                        // If we collect all keys, return dist + 1.
-                        // Otherwise, just add this state to seen and queue.
-                        if (newKeys == allKeys)
-                        {
-                            return dist + 1;
-                        }
-                        seen[newKeys].insert(make_pair(newR, newC));
-                        q.push({newR, newC, newKeys, dist + 1});
-                    }
-
-                    // If it is a lock and we don't have its key, continue.
-                    if (lockSet.count(cell) && ((keys & (1 << (cell - 'A'))) == 0))
+                    if (isValid(newX, newY, rows, cols) == false or grid[newX][newY] == '#')
                     {
                         continue;
                     }
 
-                    // We can walk to this cell if we haven't been here before with the same key state.
-                    else if (seen[keys].count(make_pair(newR, newC)) == 0)
+                    char newChar = grid[newX][newY];
+                    int newMask = mask;
+
+                    // If new char is lowercase, means we find a key so add it to our mask.
+                    if (isLowerCase(newChar))
                     {
-                        seen[keys].insert(make_pair(newR, newC));
-                        q.push({newR, newC, keys, dist + 1});
+                        newMask |= (1 << (newChar - 'a'));
                     }
+
+                    // If we have already visited current cell and mask is not updated then skip the current cell otherwise check if current lock (capital letter) key is present or not.
+                    if (
+                        vis.find({newX, newY, newMask}) != vis.end() or
+                        (isUpperCase(newChar) and !(mask & (1 << (newChar - 'A')))))
+                        continue;
+
+                    // Lastly push new char and newmask
+                    q.push({newX, newY, newMask});
+                    vis.insert({newX, newY, newMask});
                 }
             }
+
+            // Increase steps at each iteration
+            steps++;
         }
+
         return -1;
     }
 };
